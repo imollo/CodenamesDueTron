@@ -2,7 +2,16 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Pickl
 
 from functools import wraps
 
-from top_secret import BOT_CODE, PERSISTENCE_FILENAME
+from random import sample
+
+from io import BytesIO
+
+from tablero import Croupier
+
+from top_secret import BOT_TOKEN, PERSISTENCE_FILENAME
+
+##################################################################
+### BOLUDECES
 
 def añadirContador(f):
     def helper(*args):
@@ -24,7 +33,7 @@ def unaVezPorMinutoSimple(context):
 
 
 ##################################################################
-### DECORATORS
+### DECORADORES
 
 def addSenderToDict(function):
     @wraps(function)
@@ -49,7 +58,7 @@ def addUsersToChatData(function):
             
 
 ###################################################################
-### FUNCTIONS FOR COMMAND HANDLERS
+### FUNCIONES PARA DEBUGEAR
 
 @addSenderToDict
 def start(update,context):
@@ -86,10 +95,26 @@ def escribirChatData(update,context):
     chat_id = update.effective_chat.id
     context.bot.send_message(chat_id=chat_id, text=str(context.chat_data))
 
+
+##################################################################
+### FUNCIONES PARA ROMPER TODO
+
+def resetearJuego(update,context):
+    chat_id = update.effective_chat.id
+    if not context.chat_data['croupier']:
+        mensaje = "No hay juegos activos."
+        context.bot.send_message(chat_id=chat_id, text=mensaje)
+    else:
+        context.chat_data['croupier'] = None
+        context.chat_data['players'] = []
+        mensaje = "Juego eliminado."
+        context.bot.send_message(chat_id=chat_id, text=mensaje)
     
 def resetearUsuarios(update,context):
-    chat_id = update.effective_chat.id
     context.chat_data['users'] = []
+
+##################################################################
+### FUNCIONES PARA REGULAR EL JUEGO
 
 #No sé si esto es correcto
 def esUnGrupo(chat_id):
@@ -102,8 +127,27 @@ def startPosta(update,context):
         saludo  = 'Por ahora lo único que puedo hacer es decirte esto.'
         chat_id = update.effective_chat.id
         context.bot.send_message(chat_id=chat_id, text=saludo)
+    elif len(context.chat_data['users'])<2:
+        rechazo = "Vas a necesitar por lo menos un amigo para jugar este juego."
+        context.bot.send_message(chat_id=chat_id, text=rechazo)
+        return
+    elif ('croupier' in context.chat_data.keys() and context.chat_data['croupier']):
+        return info(update,context)
     else:
-        pass
+        J1, J2 = sample(context.chat_data['users'],2)
+        context.chat_data['players'] = [J1,J2]
+        context.chat_data['croupier'] = Croupier()
+        return info(update,context)
+
+def info(update,context):
+    chat_id = update.effective_chat.id
+    croupier = context.chat_data['croupier']
+    image = croupier.crearTarjetaNeutral()
+    bio = BytesIO()
+    bio.name = 'image.png'
+    image.save(bio, 'PNG')
+    bio.seek(0)
+    context.bot.send_photo(chat_id=chat_id, photo=bio)
 
 ###########################################################################
 ### FUNCTIONS FOR MESSAGE HANDLERS
@@ -143,13 +187,10 @@ def desconocido(update,context):
     
 def main():
     my_persistence = PicklePersistence(filename=PERSISTENCE_FILENAME)
-    updater = Updater(BOT_CODE,persistence=my_persistence,use_context=True)
+    updater = Updater(BOT_TOKEN,persistence=my_persistence,use_context=True)
     dp = updater.dispatcher
-    
-#    j = updater.job_queue
-#    job_minute = j.run_repeating(unaVezPorMinuto,interval=20,first=0)
-    
-    dp.add_handler(CommandHandler('start',start))
+
+    #Debug handlers
     dp.add_handler(CommandHandler('estasvivo',estasVivo))
     dp.add_handler(CommandHandler('echo',echo))
     dp.add_handler(CommandHandler('chatid',escribirChatId))
@@ -157,6 +198,10 @@ def main():
     dp.add_handler(CommandHandler('chatdata', escribirChatData))
     dp.add_handler(CommandHandler('resetusers', resetearUsuarios))
 
+    #Real handlers
+    dp.add_handler(CommandHandler('start',startPosta))
+    dp.add_handler(CommandHandler('info',info))
+    dp.add_handler(CommandHandler('reset',resetearJuego))
 
     #Estos dos handlers agregan a los usuarios a la base de datos
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, agregarUsuariosQueDanSeñasDeVida))

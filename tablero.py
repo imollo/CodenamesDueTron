@@ -80,7 +80,7 @@ class Tablero:
 ### CROUPIER #######################################################
 
 class Croupier:
-
+    
     def __init__(self,maxTurnos=9,maxErrores=9,n=5,m=5):
         self._t = Tablero(n,m)
         self._leTocaAJ1 = True
