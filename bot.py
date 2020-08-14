@@ -86,13 +86,14 @@ def escribirChatData(update,context):
     chat_id = update.effective_chat.id
     context.bot.send_message(chat_id=chat_id, text=str(context.chat_data))
 
+    
+def resetearUsuarios(update,context):
+    chat_id = update.effective_chat.id
+    context.chat_data['users'] = []
 
 #No sé si esto es correcto
 def esUnGrupo(chat_id):
     return chat_id < 0
-
-def esUnGrupo(chat_id):
-    return chat_id
 
 @addSenderToDict
 def startPosta(update,context):
@@ -154,10 +155,11 @@ def main():
     dp.add_handler(CommandHandler('chatid',escribirChatId))
     dp.add_handler(CommandHandler('chattype',escribirChatType))
     dp.add_handler(CommandHandler('chatdata', escribirChatData))
+    dp.add_handler(CommandHandler('resetusers', resetearUsuarios))
 
+
+    #Estos dos handlers agregan a los usuarios a la base de datos
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, agregarUsuariosQueDanSeñasDeVida))
-
-    #Acá tendríamos que poner algo mejor que ~Filters.command
     dp.add_handler(MessageHandler(Filters.status_update, agregarOEliminarUsuariosQueUsanLaPuerta)) 
     
     #Esto debe estar después del resto de los Handlers
