@@ -91,6 +91,9 @@ def escribirChatData(update,context):
 def esUnGrupo(chat_id):
     return chat_id < 0
 
+def esUnGrupo(chat_id):
+    return chat_id
+
 @addSenderToDict
 def startPosta(update,context):
     chat_id = update.effective_chat.id
@@ -155,7 +158,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, agregarUsuariosQueDanSeñasDeVida))
 
     #Acá tendríamos que poner algo mejor que ~Filters.command
-    dp.add_handler(MessageHandler(~Filters.command, agregarOEliminarUsuariosQueUsanLaPuerta)) 
+    dp.add_handler(MessageHandler(Filters.status_update, agregarOEliminarUsuariosQueUsanLaPuerta)) 
     
     #Esto debe estar después del resto de los Handlers
     unknown_handler = MessageHandler(Filters.command,desconocido)
