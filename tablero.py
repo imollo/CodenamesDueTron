@@ -84,6 +84,7 @@ class Croupier:
     def __init__(self,maxTurnos=9,maxErrores=9,n=5,m=5):
         self._t = Tablero(n,m)
         self._leTocaAJ1 = True
+        self._pista = [None,None]
         self._asesinado = False
         self._quedanTurnos = maxTurnos
         self._quedanHallar = [self._t.darTarjeta(i).count('e') for i in [1,2] ]
@@ -91,6 +92,15 @@ class Croupier:
         
 
     # CREAR LAS TARJETAS #
+
+    def crearTarjeta(self, n):
+        img = crearImagenDeClaves(
+            self._t._tarjetas[n],
+            self._t._palabras[n],
+            self._t._fil,
+            self._t._col,
+        )
+        return img
 
     def crearTarjetaNeutral(self):
         img = crearImagenDeClaves(self._t._tarjetas[0],self._t._palabras[0],self._t._fil,self._t._col)
@@ -140,6 +150,9 @@ class Croupier:
 
 
     # FLUJO DE JUEGO #
+
+    def recibirPista(self,pista,n):
+        self._pista = [pista,n]
     
     def pasarTurno(self):
         nextPlayer = 2 if self._leTocaAJ1 else 1
@@ -152,8 +165,10 @@ class Croupier:
 
     def hayVictoria(self):
         return self._quedanHallar==[0,0]
+
     
-    # AUXILIARES PROBABLEMENTE INNECESARIAS #
+#########################################################################    
+### AUXILIARES PROBABLEMENTE INNECESARIAS 
 
     def tableroDePalabras(self):
         """Devuelve una string en forma de tablero con las palabras"""
@@ -172,4 +187,5 @@ class Croupier:
         print('\n',end='')
         s = stringComoTablero(self.tarjetaJ2,self.fil)
         print(s)
+        
 ####################################################################
