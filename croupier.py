@@ -64,7 +64,7 @@ class Croupier:
         def outerHelper(function):
             @wraps(function)
             def innerHelper(self, jugador, *args, **kwargs):
-                if self._asesinados or self._victoria:
+                if self._asesinados or self._victoria or self._quedanRondas==0:
                     raise self.__class__.Derrota(reproche)
                 else:
                     return function(self,jugador,*args,**kwargs)
@@ -144,7 +144,7 @@ class Croupier:
         if self._t.darValorTarjeta(0,i) in ['e','c','a',str(jugador)]:
             raise Croupier.AlreadyTouchedThat("No tiene sentido elegir eso.")
 
-        h = f"{self._jugadores[jugador]} elige la palabra '{self._t.darPalabra(i)}'. "
+        h = f"{self._jugadores[jugador]} elige la palabra `{self._t.darPalabra(i)}`. "
 
         otroJugador = 3-jugador
         char = self._t.darValorTarjeta(otroJugador,i)
@@ -166,8 +166,13 @@ class Croupier:
                 self._historia.append(h)
                 raise Croupier.Victoria(h)
 
-            elif self._quedanHallar[otroJugador] == 0:
+            elif self._quedanHallar[otroJugador] == 0 and self._quedanRondas == 1:
+                self._quedanRondas -= 1
+                h += f"Todos los espías de {self._jugadores[otroJugador]} han sido contactados. ¡Pero ésta era la última ronda! ¡El juego ha terminado!"
+
+            elif self._quedanHallar[otroJugador] == 0 and self._quedanRondas > 1:
                 self._aQuienQue[jugador] = 1
+                self._quedanRondas -= 1
                 h += f"Todos los espías de {self._jugadores[otroJugador]} han sido contactados. A partir de ahora, sólo {self._jugadores[jugador]} dará las pistas... Empezando de inmediato."
                 self._historia.append(h)
             
@@ -179,10 +184,14 @@ class Croupier:
             charAux = 'c' if self._t.darValorTarjeta(0,i)==str(otroJugador) else str(jugador)
             self._t.cambiarTarjeta(0,i,charAux)
             self._t.borrarPalabra(otroJugador,i)
+            self._quedanRondas -= 1
 
             h += f"¡Es un civil! A {self._jugadores[jugador]} se le acaban las chances para arriesgar.\n"
 
-            if self._quedanHallar[jugador] == 0:
+            if self._quedanRondas == 0:
+                h += "Pero ésta era la última ronda. ¡El juego ha terminado!"
+            
+            elif self._quedanHallar[jugador] == 0:
                 self._aQuienQue[jugador] = 0
                 self._aQuienQue[otroJugador] = 1
                 h += f"Pero no quedan espías que contactar por parte suya, así que {self._jugadores[otroJugador]} debe continuar dando las pistas."
@@ -201,6 +210,12 @@ class Croupier:
             self._historia.append(h)
             raise Croupier.Derrota(h)
 
+    def darCantidadDeRondas(self):
+        if self._quedanRondas==0:
+            return "Cero, compadre."
+        else:
+            return f"Quedan {self._quedanRondas}, incluyendo ésta."
+    
     def darUltimoMensaje(self):
         return self._historia[-1]
     
