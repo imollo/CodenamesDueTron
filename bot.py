@@ -6,7 +6,7 @@ from random import sample
 
 from io import BytesIO
 
-from tablero import Croupier
+from croupier import Croupier
 
 from top_secret import BOT_TOKEN, PERSISTENCE_FILENAME
 
