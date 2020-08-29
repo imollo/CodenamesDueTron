@@ -95,6 +95,8 @@ class Croupier:
         self._victoria = False
         self._asesinados = False
 
+        self._pistas = []
+
         self._historia = []
 
         
@@ -112,18 +114,19 @@ class Croupier:
     @verSiEsTuTurno("Cuando sea tu turno vas a tener tiempo de dar pistas.")
     @verSiEsHoraDeDarPistas("No es momento de dar pistas.")
     def recibirPista(self, jugador, pista, k):
-        K = int(k)
-        if K<=0 or K>self._quedanHallar[jugador]:
-            h = "Ese número de pista es ilegal."
-            raise IllegalClue(h)
-        elif pista.lower() in self._t.darPalabras():
-            h = "Esa palabra no puede usarse como pista."
-            raise IllegalClue(h)
         
-        h = f"{self._jugadores[jugador]} dice: {pista}, {str(K)}."
+        if not k.isnumeric():
+            h = "El segundo elemento de la pista debe ser un número."
+            raise Croupier.IllegalClue(h)
+        elif int(k)<=0 or int(k)>self._quedanHallar[jugador]:
+            h = "Ese número de pista es ilegal."
+            raise Croupier.IllegalClue(h)
+        
+        h = f"{self._jugadores[jugador]} dice: {pista}, {k}."
         self._historia.append(h)
         self._aQuienQue[jugador] = 0
         self._aQuienQue[3-jugador] = -1
+        self._pistas.append((pista, int(k)))
 
 
     @verSiTerminó("El juego ya terminó.")
@@ -141,13 +144,18 @@ class Croupier:
     @verSiEsTuTurno("Tu entusiasmo es apreciado, guardalo para cuando sea tu turno.")
     @verSiEsHoraDeSeleccionar("Ahora deberías dar una pista.")
     def arriesgar(self, jugador, i):
-        if self._t.darValorTarjeta(0,i) in ['e','c','a',str(jugador)]:
+        if self._t.darValorTarjeta(0,i) in ['e','c','a']:
             raise Croupier.AlreadyTouchedThat("No tiene sentido elegir eso.")
+        elif self._t.darValorTarjeta(0,i)==str(jugador):
+            raise Croupier.AlreadyTouchedThat("Ésa ya la habías elegido antes.")
 
         h = f"{self._jugadores[jugador]} elige la palabra `{self._t.darPalabra(i)}`. "
 
         otroJugador = 3-jugador
         char = self._t.darValorTarjeta(otroJugador,i)
+
+        ###############################################
+        #BIEN! ERA UN ESPIA!!!!
         if char=='e':
             self._t.cambiarTarjeta(0,i,'e')
             self._t.borrarPalabra(jugador,i)
@@ -169,6 +177,8 @@ class Croupier:
             elif self._quedanHallar[otroJugador] == 0 and self._quedanRondas == 1:
                 self._quedanRondas -= 1
                 h += f"Todos los espías de {self._jugadores[otroJugador]} han sido contactados. ¡Pero ésta era la última ronda! ¡El juego ha terminado!"
+                self._historia.append(h)
+                raise Croupier.Derrota(h)
 
             elif self._quedanHallar[otroJugador] == 0 and self._quedanRondas > 1:
                 self._aQuienQue[jugador] = 1
@@ -180,6 +190,8 @@ class Croupier:
                 h += f"{self._jugadores[jugador]} puede elegir de nuevo o pasar."
                 self._historia.append(h)
 
+        #####################################
+        #ERA UN CIVIL!!!!!
         elif char=='c':
             charAux = 'c' if self._t.darValorTarjeta(0,i)==str(otroJugador) else str(jugador)
             self._t.cambiarTarjeta(0,i,charAux)
@@ -190,6 +202,8 @@ class Croupier:
 
             if self._quedanRondas == 0:
                 h += "Pero ésta era la última ronda. ¡El juego ha terminado!"
+                self._historia.append(h)
+                raise Croupier.Derrota(h)
             
             elif self._quedanHallar[jugador] == 0:
                 self._aQuienQue[jugador] = 0
@@ -202,6 +216,8 @@ class Croupier:
                 h += "Ahora debe dar una pista."
                 self._historia.append(h)
 
+        ######################################################
+        # ESTAMOS MUERTOS
         elif char=='a':
             self._t.cambiarTarjeta(0,i,'a')
             self._t.borrarPalabra(otroJugador,i)
@@ -211,21 +227,29 @@ class Croupier:
             raise Croupier.Derrota(h)
 
     def darCantidadDeRondas(self):
-        if self._quedanRondas==0:
-            return "Cero, compadre."
+        if self.seAcabo():
+            return "¡El juego se acabó!."
         else:
-            return f"Quedan {self._quedanRondas}, incluyendo ésta."
+            return f"Quedan {self._quedanRondas} rondas, incluyendo ésta."
     
     def darUltimoMensaje(self):
         return self._historia[-1]
+
+    def darPalabras(self):
+        return self._t.darPalabras()
+
+    def seAcabo(self):
+        return self._asesinados or self._victoria or self._quedanRondas==0
     
     def help(self):
         """Devuelve una string detallando qué es lo siguiente que hay que hacer."""
-        if self._asesinados or self._victoria:
-            return "¡El juego se acabó!"
+        if self.seAcabo():
+            return "¡El juego se acabó!\n"
         for i in [1,2]:
-            if self._aQuienQue[i] in Croupier.sigue.keys():
-                return f"{self._jugadores[i]} {Croupier.sigue[self._aQuienQue[i]]}"
+            if self._aQuienQue[i] == 1:
+                return f"{self._jugadores[i]} debe dar una pista.\n"
+            elif self._aQuienQue[i] == -1:
+                return f"{self._jugadores[i]} debe arriesgar. La última pista de {self._jugadores[3-i]} fue `{self._pistas[-1][0]}, {self._pistas[-1][1]}`.\n"
 
             
 ###################################################################
