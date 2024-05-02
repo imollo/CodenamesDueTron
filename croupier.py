@@ -249,7 +249,7 @@ class Croupier:
             if self._aQuienQue[i] == 1:
                 return f"{self._jugadores[i]} debe dar una pista.\n"
             elif self._aQuienQue[i] == -1:
-                return f"{self._jugadores[i]} debe arriesgar. La última pista de {self._jugadores[3-i]} fue `{self._pistas[-1][0]}, {self._pistas[-1][1]}`.\n"
+                return f"{self._jugadores[i]} debe arriesgar o pasar. La última pista de {self._jugadores[3-i]} fue `{self._pistas[-1][0]}, {self._pistas[-1][1]}`.\n"
 
             
 ###################################################################
